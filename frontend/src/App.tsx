@@ -40,7 +40,7 @@ export function App() {
           ))}
         </nav>
         <div className="spacer" />
-        {meta && <span className="muted mono" style={{ fontSize: 12 }}>{meta.model_id}</span>}
+        {meta && <span className="muted mono" style={{ fontSize: 12 }}>{meta.models.baseline}</span>}
         <BudgetMeter budget={budget} />
       </header>
 

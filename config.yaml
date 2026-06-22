@@ -25,18 +25,26 @@ tiers:
 provider_pin: null
 
 # ── Worker-model specification (orchestrator sees this as DATA) ───────────
+# model_id is anonymized on purpose: the orchestrator must reason about "a
+# system with these capabilities", not recognize the model and import priors.
 specs:
-  model_id: "deepseek-v4-pro"            # cosmetic label for the spec block
+  model_id: "worker-A"
   knowledge_cutoff: "2026-01"            # ISO month; drives the post-cutoff guard
-  benchmarks:                            # coarse routing signal
-    swe_bench_verified: 80.6
-    gpqa_diamond: 90.1
-    intelligence_index: 39.3
+  benchmarks:                            # coarse corroborating signal
+    swe_bench_verified: 80.6             # coding/agentic — strong
+    gpqa_diamond: 90.1                   # STEM/reasoning — strong
+    livecodebench: 93.5                  # coding — strong
+    simpleqa_verified: 57.9              # factuality — weak (routes empirical)
+  strengths:                             # where the baseline is often sufficient
+    - "coding & agentic tasks: repo-scale tool use, precise implementation, structured multi-step work — among the best open models"
+    - "STEM & mathematical reasoning: competition math, hard technical questions"
+    - "long-context efficiency: a 1M-token window is practical for full codebases and long traces"
   known_failure_modes:                   # the actionable routing signal
-    - "satisfices on exhaustive enumeration; skips edge cases in one pass"
-    - "weak on frontend spatial / visual reasoning"
-    - "confidently wrong on facts after knowledge cutoff"
-    - "anchors on its first frame; under-explores alternative construals"
+    - "anchors on its first frame; satisfices rather than exhausts (skips edge cases in a single pass)"
+    - "weak factuality: high hallucination on unknown-answer questions; confidently wrong on post-cutoff or obscure facts"
+    - "verbose: 3-5x token use on hard tasks; can assert false positives in debugging/analysis"
+    - "long-context degradation beyond ~200-300k tokens (confident but ungrounded outputs)"
+    - "trails the frontier on open-ended/creative, improvisational, and spatial/visual/frontend reasoning"
 
 # ── Dials: diagnostic-count ceilings, not quotas ─────────────────────────
 dials:

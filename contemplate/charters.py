@@ -40,6 +40,11 @@ ORCHESTRATOR_CHARTER = (
     "is available; select it only if you can name, in one sentence, what it "
     "will catch that a direct answer to this prompt would miss — matching "
     "this prompt's specific demands against this model's specific weaknesses.\n\n"
+    "Use the model's strengths and weaknesses to calibrate: where the prompt "
+    "plays to a listed strength, lean on the baseline (prefer the fast-path or "
+    "fewer tools); where it touches a listed weakness, route the operation that "
+    "targets that weakness. Reason it out from the specifications — do not "
+    "assume a fixed weakness-to-operation mapping.\n\n"
     'Output strict JSON only, no prose: {{"fast_path": bool, "selected": '
     '[...], "rationale": {{tool_id: "..."}}}}.'
 )

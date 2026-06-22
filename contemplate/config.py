@@ -37,11 +37,17 @@ DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config.yaml"
 
 
 class Specs(BaseModel):
-    """Worker-model specification — the orchestrator consumes this as data."""
+    """Worker-model specification — the orchestrator consumes this as data.
+
+    `model_id` is deliberately anonymized (the orchestrator must reason about
+    "a system with these capabilities", not recognize itself). `strengths`
+    feed the fast-path; `known_failure_modes` are the actionable routing signal.
+    """
 
     model_id: str
     knowledge_cutoff: str  # ISO month, e.g. "2026-01"
     benchmarks: dict[str, float]
+    strengths: list[str] = Field(default_factory=list)
     known_failure_modes: list[str]
 
 
