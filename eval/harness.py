@@ -53,7 +53,7 @@ class EvalSummary(BaseModel):
     results: list[PromptResult] = Field(default_factory=list)
 
 
-async def run_eval(
+async def eval_stream(
     client: LLMClient,
     config: Config,
     prompts: list[EvalPrompt],
@@ -61,8 +61,12 @@ async def run_eval(
     dial: str = "high",
     judge: bool = True,
     seed: int = 0,
-) -> EvalSummary:
-    """Run every prompt through the harness and (optionally) a blind judge."""
+):
+    """Yield ("prompt_result", PromptResult) per prompt, then ("eval_summary", EvalSummary).
+
+    The single source of truth for the eval loop; both the CLI and the
+    streaming API consume it.
+    """
     rng = random.Random(seed)
     summary = EvalSummary(n_prompts=len(prompts))
     for prompt in prompts:
@@ -72,6 +76,26 @@ async def run_eval(
             result.judge_winner = await _judge(client, config, prompt.text, record, rng)
         _accumulate(summary, result)
         summary.results.append(result)
+        yield "prompt_result", result
+    yield "eval_summary", summary
+
+
+async def run_eval(
+    client: LLMClient,
+    config: Config,
+    prompts: list[EvalPrompt],
+    *,
+    dial: str = "high",
+    judge: bool = True,
+    seed: int = 0,
+) -> EvalSummary:
+    """Run the full eval and return the final summary (drains eval_stream)."""
+    summary = EvalSummary(n_prompts=len(prompts))
+    async for kind, payload in eval_stream(
+        client, config, prompts, dial=dial, judge=judge, seed=seed
+    ):
+        if kind == "eval_summary":
+            summary = payload
     return summary
 
 

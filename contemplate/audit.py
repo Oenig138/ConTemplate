@@ -27,7 +27,8 @@ def persist(record: RunRecord, runs_dir: Path | None = None) -> Path:
 
     stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
     slug = _slug(record.prompt)
-    path = target_dir / f"{stamp}-{slug}.json"
+    suffix = f"-{record.id}" if record.id else ""
+    path = target_dir / f"{stamp}-{slug}{suffix}.json"
     path.write_text(record.model_dump_json(indent=2))
     logger.info("persisted run record to %s", path)
     return path

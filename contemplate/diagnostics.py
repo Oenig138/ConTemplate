@@ -16,6 +16,7 @@ import re
 from .charters import build_diagnostic_messages
 from .client import CompletionError, LLMClient
 from .config import BASELINE_CONSUMERS, RETRIEVAL_TOOLS, Config
+from .events import Emitter, StageEvent, noop_emitter
 from .models import Confidence, DiagnosticResult
 
 logger = logging.getLogger("contemplate.diagnostics")
@@ -64,15 +65,32 @@ async def run_diagnostics(
     tool_ids: list[str],
     prompt: str,
     baseline: str | None,
+    emit: Emitter = noop_emitter,
 ) -> list[DiagnosticResult]:
-    """Parallel fan-out over the selected tools (spec §A.3 step 5)."""
+    """Parallel fan-out over the selected tools (spec §A.3 step 5).
+
+    Emits a `diagnostic_done` event as each tool returns, so a UI can light
+    up the fan-out incrementally rather than all at once.
+    """
     if not tool_ids:
         return []
-    tasks = [
-        diagnostic_call(client, config, tool_id, prompt, baseline)
-        for tool_id in tool_ids
-    ]
-    return list(await asyncio.gather(*tasks))
+
+    async def _one(tool_id: str) -> DiagnosticResult:
+        result = await diagnostic_call(client, config, tool_id, prompt, baseline)
+        emit(
+            StageEvent(
+                type="diagnostic_done",
+                payload={
+                    "tool_id": result.tool_id,
+                    "status": result.status,
+                    "self_confidence": result.self_confidence,
+                    "citations": len(result.citations),
+                },
+            )
+        )
+        return result
+
+    return list(await asyncio.gather(*[_one(t) for t in tool_ids]))
 
 
 def _parse_confidence(text: str) -> tuple[str, Confidence]:

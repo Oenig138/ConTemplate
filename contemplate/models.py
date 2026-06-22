@@ -89,6 +89,8 @@ class AdmittedDiagnostic(BaseModel):
 class RunRecord(BaseModel):
     """The full audit artifact for one harness run (spec §6)."""
 
+    id: str = ""
+    created_at: str = ""  # ISO 8601; stamped at finalize
     prompt: str
     dial: str
     answer: str

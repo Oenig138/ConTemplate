@@ -14,3 +14,9 @@ runs/*
 
 # Eval outputs
 eval/results/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
