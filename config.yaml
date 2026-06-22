@@ -1,0 +1,56 @@
+# ConTemplate configuration. Model IDs only — no secrets (the API key lives
+# in .env). Everything here is data the eval may tune.
+
+# ── Model tiers ──────────────────────────────────────────────────────────
+# Two OpenRouter slugs. Pro = discrimination-heavy stages (baseline,
+# orchestrator, synthesis). Flash = the generation-heavy diagnostic fan-out.
+#
+# >>> REPLACE THE PLACEHOLDERS BELOW WITH REAL OPENROUTER SLUGS <<<
+# e.g. "deepseek/deepseek-chat-v3.1", "deepseek/deepseek-v3.2-exp", etc.
+tiers:
+  baseline: "deepseek/deepseek-v4-pro"
+  orchestrator: "deepseek/deepseek-v4-pro"
+  synthesis: "deepseek/deepseek-v4-pro"
+  diagnostic: "deepseek/deepseek-v4-flash"
+  redundancy: "deepseek/deepseek-v4-flash"   # cheap novelty check in the gate
+  # Per-tool diagnostic overrides (spec §9: adversarial is the likeliest
+  # promotion to Pro). Tool ids map to a slug; absent => uses `diagnostic`.
+  per_tool: {}
+    # adversarial: "deepseek/deepseek-v4-pro"
+
+# OpenRouter provider routing. Pinning one provider is what makes DeepSeek's
+# automatic prefix cache land on every call (see plan / spec §9). Set to the
+# provider name as OpenRouter reports it (e.g. "DeepSeek", "Fireworks").
+# Leave null to let OpenRouter route freely (cache hits then not guaranteed).
+provider_pin: null
+
+# ── Worker-model specification (orchestrator sees this as DATA) ───────────
+specs:
+  model_id: "deepseek-v4-pro"            # cosmetic label for the spec block
+  knowledge_cutoff: "2026-01"            # ISO month; drives the post-cutoff guard
+  benchmarks:                            # coarse routing signal
+    swe_bench_verified: 80.6
+    gpqa_diamond: 90.1
+    intelligence_index: 39.3
+  known_failure_modes:                   # the actionable routing signal
+    - "satisfices on exhaustive enumeration; skips edge cases in one pass"
+    - "weak on frontend spatial / visual reasoning"
+    - "confidently wrong on facts after knowledge cutoff"
+    - "anchors on its first frame; under-explores alternative construals"
+
+# ── Dials: diagnostic-count ceilings, not quotas ─────────────────────────
+dials:
+  "off": 0      # quoted — bare `off` is YAML boolean false
+  medium: 3
+  high: 5
+
+# ── Empirical-tool web retrieval (OpenRouter web plugin) ─────────────────
+web:
+  max_results: 5
+
+# ── Generation defaults ──────────────────────────────────────────────────
+defaults:
+  temperature: 0.7        # diagnostics/abductive want some spread
+  baseline_temperature: 0.3
+  synthesis_temperature: 0.3
+  request_timeout_s: 120
