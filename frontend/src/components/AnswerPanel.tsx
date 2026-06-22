@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Markdown from "react-markdown";
 import type { RunRecord } from "../types";
+import { CopyJudgeButton } from "./CopyJudgeButton";
 
 /** The final answer, with a one-click A/B against the bare single call. */
 export function AnswerPanel({ record }: { record: RunRecord }) {
@@ -36,9 +37,17 @@ export function AnswerPanel({ record }: { record: RunRecord }) {
       )}
 
       {canCompare && (
-        <button className="tab ab-toggle" onClick={() => setCompare((c) => !c)}>
-          {compare ? "← Show final only" : "⇄ Compare with single call"}
-        </button>
+        <div className="row ab-toggle" style={{ gap: 8 }}>
+          <button className="tab" onClick={() => setCompare((c) => !c)}>
+            {compare ? "← Show final only" : "⇄ Compare with single call"}
+          </button>
+          <CopyJudgeButton
+            seedKey={record.id || record.prompt}
+            prompt={record.prompt}
+            harnessAnswer={record.answer}
+            singleAnswer={baseline}
+          />
+        </div>
       )}
     </div>
   );

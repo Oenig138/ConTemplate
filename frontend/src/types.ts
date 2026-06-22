@@ -103,6 +103,9 @@ export interface PromptResult {
   dropped: Record<string, string>;
   divergence: Record<string, number>;
   judge_winner: string | null;
+  prompt_text: string;
+  baseline_answer: string;
+  harness_answer: string;
 }
 
 export interface EvalSummary {

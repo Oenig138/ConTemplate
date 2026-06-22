@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { streamEval } from "../api";
 import type { Dial, EvalSummary, HarnessMeta, PromptResult } from "../types";
+import { CopyJudgeButton } from "./CopyJudgeButton";
+import { buildJudgeBatch, copyToClipboard } from "./judge";
 
 /** Run the seed-set A/B eval and visualize the per-tool readout (spec §8). */
 export function EvalDashboard({ meta, onComplete }: { meta: HarnessMeta | null; onComplete: () => void }) {
@@ -10,7 +12,26 @@ export function EvalDashboard({ meta, onComplete }: { meta: HarnessMeta | null; 
   const [results, setResults] = useState<PromptResult[]>([]);
   const [summary, setSummary] = useState<EvalSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [batchKeys, setBatchKeys] = useState<{ label: string; harnessLetter: string }[] | null>(null);
   const closer = useRef<(() => void) | null>(null);
+
+  async function copyAll() {
+    const comparable = results.filter(
+      (r) => r.harness_answer && r.baseline_answer && r.harness_answer !== r.baseline_answer,
+    );
+    if (comparable.length === 0) return;
+    const { text, keys } = buildJudgeBatch(
+      comparable.map((r) => ({
+        seedKey: r.prompt_id,
+        label: r.prompt_id,
+        prompt: r.prompt_text,
+        harnessAnswer: r.harness_answer,
+        singleAnswer: r.baseline_answer,
+      })),
+    );
+    await copyToClipboard(text);
+    setBatchKeys(keys);
+  }
 
   function start() {
     if (running) return;
@@ -104,8 +125,25 @@ export function EvalDashboard({ meta, onComplete }: { meta: HarnessMeta | null; 
 
       {results.length > 0 && (
         <div className="card">
-          <h2>Per prompt ({results.length})</h2>
-          <table>
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <h2 style={{ margin: 0 }}>Per prompt ({results.length})</h2>
+            <button className="tab" onClick={copyAll} title="Copy every comparable prompt as one blind judge batch">
+              📋 Copy all for external judge
+            </button>
+          </div>
+          {batchKeys && (
+            <div className="card" style={{ marginTop: 8 }}>
+              <h2>Batch copied — answer key (do not paste to the judge)</h2>
+              <div className="row mono" style={{ fontSize: 12, gap: 14 }}>
+                {batchKeys.map((k) => (
+                  <span key={k.label}>
+                    {k.label}: <strong>{k.harnessLetter}</strong>=harness
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <table style={{ marginTop: 12 }}>
             <thead>
               <tr>
                 <th>Kind</th>
@@ -113,6 +151,7 @@ export function EvalDashboard({ meta, onComplete }: { meta: HarnessMeta | null; 
                 <th>Selected</th>
                 <th>Admitted</th>
                 <th>Judge</th>
+                <th>External</th>
               </tr>
             </thead>
             <tbody>
@@ -130,6 +169,15 @@ export function EvalDashboard({ meta, onComplete }: { meta: HarnessMeta | null; 
                     ) : (
                       "—"
                     )}
+                  </td>
+                  <td>
+                    <CopyJudgeButton
+                      seedKey={r.prompt_id}
+                      prompt={r.prompt_text}
+                      harnessAnswer={r.harness_answer}
+                      singleAnswer={r.baseline_answer}
+                      label="📋"
+                    />
                   </td>
                 </tr>
               ))}

@@ -41,6 +41,10 @@ class PromptResult(BaseModel):
     dropped: dict[str, str] = Field(default_factory=dict)
     divergence: dict[str, float] = Field(default_factory=dict)
     judge_winner: str | None = None  # "harness" | "single" | "tie" | None
+    # Full texts so the UI can assemble an external judge prompt (no API judge).
+    prompt_text: str = ""
+    baseline_answer: str = ""
+    harness_answer: str = ""
 
 
 class EvalSummary(BaseModel):
@@ -116,6 +120,9 @@ def _score_record(prompt: EvalPrompt, record: RunRecord) -> PromptResult:
         admitted=admitted,
         dropped=dropped,
         divergence=divergence,
+        prompt_text=prompt.text,
+        baseline_answer=baseline,
+        harness_answer=record.answer,
     )
 
 
